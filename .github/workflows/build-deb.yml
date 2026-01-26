@@ -36,7 +36,7 @@ jobs:
         with:
           name: flagcx-${{ matrix.backend }}-packages
           path: debian-packages/${{ matrix.backend }}/*.deb
-          retention-days: 30
+          retention-days: 1
 
       - name: Run lintian on ${{ matrix.backend }} packages
         run: |

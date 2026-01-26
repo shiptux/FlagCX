@@ -46,9 +46,11 @@ fi
 case "$BACKEND" in
     nvidia)
         BASE_IMAGE="harbor.baai.ac.cn/flagbase/flagbase-nvidia"
+        VENDOR="nvidia"
         ;;
     metax)
         BASE_IMAGE="harbor.baai.ac.cn/flagbase/flagbase-metax"
+        VENDOR="metax"
         ;;
     *)
         log_error "Invalid backend: $BACKEND"
@@ -60,7 +62,7 @@ esac
 log_info "Building FlagCX Debian packages for $BACKEND backend"
 log_info "Using base image: ${BASE_IMAGE}:${BASE_IMAGE_VERSION}"
 
-DOCKERFILE="${SCRIPT_DIR}/Dockerfile.${BACKEND}-deb"
+DOCKERFILE="${SCRIPT_DIR}/Dockerfile.deb"
 
 # Check if Dockerfile exists
 if [ ! -f "$DOCKERFILE" ]; then
@@ -68,7 +70,7 @@ if [ ! -f "$DOCKERFILE" ]; then
     exit 1
 fi
 
-log_step "Using Dockerfile: $DOCKERFILE"
+log_step "Using unified Dockerfile: $DOCKERFILE"
 
 # Build container image
 IMAGE_TAG="flagcx-deb-${BACKEND}:${BASE_IMAGE_VERSION}"
@@ -78,6 +80,7 @@ if ! docker build \
     -f "$DOCKERFILE" \
     --build-arg BASE_IMAGE="$BASE_IMAGE" \
     --build-arg BASE_IMAGE_VERSION="$BASE_IMAGE_VERSION" \
+    --build-arg VENDOR="$VENDOR" \
     --target output \
     -t "$IMAGE_TAG" \
     "$PROJECT_DIR"; then

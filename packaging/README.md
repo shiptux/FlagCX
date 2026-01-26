@@ -7,14 +7,14 @@ This directory contains packaging configurations for various Linux distributions
 ```
 packaging/
 ├── debian/              # Debian/Ubuntu packaging
-│   ├── control         # Package metadata
+│   ├── control         # Package metadata (with build profiles)
 │   ├── rules           # Build rules
 │   ├── changelog       # Version history
 │   ├── copyright       # License information
 │   └── build-helpers/  # Build scripts and Dockerfiles
 │       ├── build-flagcx.sh          # Unified build script
-│       ├── Dockerfile.nvidia-deb    # NVIDIA build configuration
-│       └── Dockerfile.metax-deb     # MetaX build configuration
+│       ├── Dockerfile.deb           # Unified build configuration
+│       └── test-nexus-upload.sh     # Local Nexus upload test script
 └── rpm/                # Future: RPM packaging for RHEL/Fedora/etc.
 ```
 
@@ -33,44 +33,61 @@ Following [Debian UpstreamGuide](https://wiki.debian.org/UpstreamGuide) recommen
 
 ## Building Debian Packages
 
-Use the unified build script to build packages for any backend:
+Use the unified build script to build packages for any vendor/backend:
 
-### NVIDIA Backend
+### Usage
 
+```bash
+./packaging/debian/build-helpers/build-flagcx.sh <vendor> [base_image_version]
+```
+
+**Parameters:**
+- `<vendor>` - Hardware vendor/backend (e.g., `nvidia`, `metax`)
+- `[base_image_version]` - Optional base image version tag (default: `latest`)
+
+**Output:** `debian-packages/<vendor>/*.deb`
+
+### Examples
+
+**Build for NVIDIA:**
 ```bash
 ./packaging/debian/build-helpers/build-flagcx.sh nvidia
+# Output: debian-packages/nvidia/*.deb
 ```
 
-**Output:** `debian-packages/nvidia/*.deb`
-
-### MetaX Backend
-
+**Build for MetaX:**
 ```bash
 ./packaging/debian/build-helpers/build-flagcx.sh metax
+# Output: debian-packages/metax/*.deb
 ```
 
-**Output:** `debian-packages/metax/*.deb`
-
-### Advanced Usage
-
-Specify a custom base image version:
-
+**Specify custom base image version:**
 ```bash
-./packaging/debian/build-helpers/build-flagcx.sh nvidia latest
-./packaging/debian/build-helpers/build-flagcx.sh metax v1.2.3
+./packaging/debian/build-helpers/build-flagcx.sh nvidia v1.2.3
+./packaging/debian/build-helpers/build-flagcx.sh metax latest
 ```
 
-The build script uses upstream base images:
-- NVIDIA: `harbor.baai.ac.cn/flagbase/flagbase-nvidia`
-- MetaX: `harbor.baai.ac.cn/flagbase/flagbase-metax`
+### Base Images
+
+The build script uses upstream base images from `harbor.baai.ac.cn/flagbase/`:
+- NVIDIA: `flagbase-nvidia:<version>`
+- MetaX: `flagbase-metax:<version>`
+
+To add support for a new vendor, ensure a corresponding base image exists at:
+`harbor.baai.ac.cn/flagbase/flagbase-<vendor>:<version>`
 
 ## Installation
 
+Install packages for your hardware vendor:
+
 ```bash
-# NVIDIA
+# General syntax
+sudo dpkg -i debian-packages/<vendor>/*.deb
+
+# Example: NVIDIA
 sudo dpkg -i debian-packages/nvidia/*.deb
 
-# MetaX
+# Example: MetaX
 sudo dpkg -i debian-packages/metax/*.deb
 ```
 
@@ -96,19 +113,42 @@ After upload, users can install packages from the APT repository:
 echo "deb https://resource.flagos.net/repository/flagos-apt-hosted/ flagos-apt-hosted main" | \
   sudo tee /etc/apt/sources.list.d/flagcx.list
 
-# Update and install
+# Update package list
 sudo apt-get update
-sudo apt-get install flagcx-nvidia  # or flagcx-metax
+
+# Install packages for your vendor
+sudo apt-get install libflagcx-<vendor>        # Runtime library
+sudo apt-get install libflagcx-<vendor>-dev    # Development files
+
+# Examples:
+sudo apt-get install libflagcx-nvidia libflagcx-nvidia-dev
+sudo apt-get install libflagcx-metax libflagcx-metax-dev
 ```
 
 ## Architecture
 
-The build process uses multi-stage Docker builds:
+The build process uses a **unified multi-stage Dockerfile** with build profiles:
 
-1. **Builder stage**: Based on upstream `flagbase-nvidia` or `flagbase-metax` images
+### Build Profiles Support
+
+The `debian/control` file defines build profiles to support multiple backends:
+- `pkg.flagcx.nvidia-only` - Build only NVIDIA packages
+- `pkg.flagcx.metax-only` - Build only MetaX packages
+
+### Unified Dockerfile
+
+A single `Dockerfile.deb` builds packages for all backends using build arguments:
+- `BASE_IMAGE` - Upstream base image (e.g., `flagbase-nvidia`, `flagbase-metax`)
+- `BASE_IMAGE_VERSION` - Image version tag (default: `latest`)
+- `VENDOR` - Backend vendor name (used for build profile selection)
+
+### Build Stages
+
+1. **Builder stage**: Based on upstream flagbase images
    - Contains all necessary build dependencies (CUDA/NCCL or MACA SDK)
    - Installs Debian packaging tools (`debhelper`, `dpkg-dev`, etc.)
-   - Runs `dpkg-buildpackage` to create `.deb` packages
+   - Runs `dpkg-buildpackage` with `DEB_BUILD_PROFILES=pkg.flagcx.${VENDOR}-only`
+   - Only builds packages for the specified vendor
 
 2. **Output stage**: Minimal Alpine image
    - Only contains the built `.deb` files
@@ -116,6 +156,8 @@ The build process uses multi-stage Docker builds:
 
 This approach ensures:
 - ✓ Reproducible builds using official base images
+- ✓ Single Dockerfile for all backends (DRY principle)
+- ✓ Backend selection via build profiles
 - ✓ No custom Docker images to maintain
 - ✓ Clean separation of build environment and outputs
 

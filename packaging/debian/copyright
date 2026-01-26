@@ -4,7 +4,7 @@ Upstream-Contact: FlagOS <contact@flagos.io>
 Source: https://github.com/flagos-ai/FlagCX
 
 Files: *
-Copyright: 2024-2026 FlagCX Contributors
+Copyright: 2024-2026 FlagOS Contributors
 License: Apache-2.0
 
 Files: flagcx/service/* flagcx/core/*
@@ -15,7 +15,7 @@ Comment: Contains NCCL-derived code under separate license terms.
  See flagcx/service/LICENSE-NCCL.txt and flagcx/core/LICENSE-NCCL.txt
 
 Files: packaging/debian/*
-Copyright: 2026 Cheng Li <shiptux@gmail.com>
+Copyright: 2026 FlagOS Contributors <contact@flagos.io>
 License: Apache-2.0
 
 License: Apache-2.0

@@ -12,11 +12,11 @@ on:
 
 jobs:
   upload:
-    runs-on: ubuntu-22.04
+    runs-on: h20
 
     steps:
       - name: Download build artifacts
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v12
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow: build-deb.yml
@@ -68,25 +68,31 @@ jobs:
             fi
           }
 
-          # Upload NVIDIA packages
-          if [ -d "packages/flagcx-nvidia-packages" ]; then
-            echo ""
-            echo "=== Uploading NVIDIA packages ==="
-            for deb in packages/flagcx-nvidia-packages/*.deb; do
-              [ -f "$deb" ] || continue
-              upload_deb "$deb" "nvidia"
-            done
-          fi
+          # Upload packages for all vendors
+          for vendor in nvidia metax; do
+            vendor_dir="packages/flagcx-${vendor}-packages"
 
-          # Upload MetaX packages
-          if [ -d "packages/flagcx-metax-packages" ]; then
-            echo ""
-            echo "=== Uploading MetaX packages ==="
-            for deb in packages/flagcx-metax-packages/*.deb; do
-              [ -f "$deb" ] || continue
-              upload_deb "$deb" "metax"
-            done
-          fi
+            if [ -d "$vendor_dir" ]; then
+              echo ""
+              echo "=== Uploading ${vendor} packages ==="
+
+              uploaded=0
+              for deb in "$vendor_dir"/*.deb; do
+                [ -f "$deb" ] || continue
+                if upload_deb "$deb" "$vendor"; then
+                  ((uploaded++))
+                fi
+              done
+
+              if [ $uploaded -gt 0 ]; then
+                echo "✓ Uploaded $uploaded ${vendor} package(s)"
+              else
+                echo "⚠ No ${vendor} packages found to upload"
+              fi
+            else
+              echo "⚠ Skipping ${vendor}: directory not found"
+            fi
+          done
 
       - name: Summary
         run: |
