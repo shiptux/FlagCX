@@ -76,6 +76,20 @@ The build script uses upstream base images from `harbor.baai.ac.cn/flagbase/`:
 To add support for a new vendor, ensure a corresponding base image exists at:
 `harbor.baai.ac.cn/flagbase/flagbase-<vendor>:<version>`
 
+### Quality Checks
+
+The build script automatically runs `lintian` to validate the generated packages if available:
+
+```bash
+# Install lintian (optional but recommended)
+sudo apt-get install lintian
+
+# Build packages - lintian runs automatically
+./packaging/debian/build-helpers/build-flagcx.sh nvidia
+```
+
+Lintian checks are non-fatal and won't stop the build if issues are found.
+
 ## Installation
 
 Install packages for your hardware vendor:

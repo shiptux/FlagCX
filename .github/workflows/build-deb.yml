@@ -37,9 +37,3 @@ jobs:
           name: flagcx-${{ matrix.backend }}-packages
           path: debian-packages/${{ matrix.backend }}/*.deb
           retention-days: 1
-
-      - name: Run lintian on ${{ matrix.backend }} packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lintian
-          lintian debian-packages/${{ matrix.backend }}/*.deb || true

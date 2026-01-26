@@ -113,6 +113,26 @@ if ls "$OUTPUT_DIR"/*.deb 1> /dev/null 2>&1; then
         echo "  $line"
     done
     echo ""
+
+    # Run lintian if available
+    if command -v lintian >/dev/null 2>&1; then
+        log_step "Running lintian checks..."
+        echo ""
+        for deb in "$OUTPUT_DIR"/*.deb; do
+            [ -f "$deb" ] || continue
+            echo "Checking $(basename "$deb")..."
+            if lintian "$deb" 2>&1; then
+                log_info "✓ Lintian check passed for $(basename "$deb")"
+            else
+                log_warn "⚠ Lintian found issues in $(basename "$deb") (non-fatal)"
+            fi
+            echo ""
+        done
+    else
+        log_warn "lintian not found, skipping package validation"
+        log_warn "Install with: sudo apt-get install lintian"
+    fi
+
     log_info "Build complete! Packages in: $OUTPUT_DIR/"
 else
     log_error "No .deb files were created"
