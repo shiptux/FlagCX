@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-packages:
-    runs-on: ubuntu-22.04
+    runs-on: h20
 
     strategy:
       fail-fast: false
