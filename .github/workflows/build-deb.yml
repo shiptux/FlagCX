@@ -2,11 +2,8 @@ name: Build Debian Packages
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - 'flagcx/**'
-      - 'packaging/debian/**'
-      - '.github/workflows/build-deb.yml'
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main ]
     paths:
