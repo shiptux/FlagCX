@@ -60,12 +60,33 @@ jobs:
   # than codeload). It cannot be validated until the first v* tag is pushed; if
   # h20's egress to that endpoint is also unreliable, move this step to an
   # internal host with stable GitHub access, or fix h20's public egress.
+  # Publish automatically only for stable release tags (vX.Y.Z, with an
+  # optional .postN). Pre-release tags in any spelling (v0.13.0-rc2.post1,
+  # 0.14.0rc1, v1.0.0.dev0) still build packages but must not publish
+  # them to the official Nexus repository. GitHub expressions cannot
+  # match regexes, so the check runs in a shell step.
+  tag-guard:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.check.outputs.publish }}
+    steps:
+      - name: Check for a stable release tag
+        id: check
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_NAME" =~ ^v?[0-9]+(\.[0-9]+){0,3}(\.post[0-9]+)?$ ]]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Stable release tag '${REF_NAME}' - publishing."
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Non-stable tag '${REF_NAME}' - skipping publish."
+          fi
+
   publish-rpm-packages:
-    needs: build-rpm-packages
-    # Stable release tags only (vX.Y.Z). Pre-release tags such as
-    # v0.13.0-rc2.post1 still build packages but must not publish them
-    # to the official Nexus repository.
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    needs: [build-rpm-packages, tag-guard]
+    if: needs.tag-guard.outputs.publish == 'true'
     runs-on: h20
 
     strategy:
