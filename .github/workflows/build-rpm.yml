@@ -1,5 +1,9 @@
 name: Build RPM Packages
 
+# PRs trigger this only for packaging-file changes; source changes do
+# not - packaging currently covers only selected backends, so source
+# PRs (often targeting other vendors' hardware) should not be gated
+# or delayed by a package build.
 on:
   push:
     tags:
@@ -7,7 +11,6 @@ on:
   pull_request:
     branches: [ main ]
     paths:
-      - 'flagcx/**'
       - 'packaging/rpm/**'
       - '.github/workflows/build-rpm.yml'
   workflow_dispatch:
