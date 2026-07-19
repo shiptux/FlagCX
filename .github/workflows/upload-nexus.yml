@@ -12,6 +12,10 @@ on:
 
 jobs:
   upload:
+    # Stable release tags only (vX.Y.Z). Pre-release tags such as
+    # v0.13.0-rc2.post1 must not reach the official APT repository;
+    # manual dispatch stays available as the escape hatch.
+    if: github.event_name != 'push' || !contains(github.ref_name, '-')
     runs-on: h20
 
     steps:
@@ -21,6 +25,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow: build-deb.yml
           run_id: ${{ github.event.inputs.run_id }}
+          # On tag push, pin the download to this tag's commit instead of
+          # "latest successful run", which may be an unrelated PR build.
+          # If build-deb has not finished for this commit yet, this step
+          # fails loudly - rerun via workflow_dispatch with the run ID.
+          commit: ${{ github.event_name == 'push' && github.sha || '' }}
           workflow_conclusion: success
           path: packages/
 
